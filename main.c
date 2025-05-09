@@ -1,11 +1,21 @@
 // main.c
 #include "dungeon.h"
+#include <ctype.h>
 
 // Global level array, accessible by level_init.c
 Level level[4];
+void initLevel1();
+void initLevel2();
+void initLevel3();
+void initLevel4();
 
 // Function declarations - now defined in level_init.c
-void initLevels();
+void initLevels()
+{
+    initLevel1();
+    //initLevel2();
+    //...
+}
 
 // Display room information and available exits
 void displayRoom(Node* currentRoom) {
