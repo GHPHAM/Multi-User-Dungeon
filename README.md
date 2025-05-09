@@ -10,8 +10,9 @@
 ## Controls
 * Player traverse with 4 buttons that take them north, south, east, west.
 
-## Compile
+## Compile server
+### in /server
 with gcc
 ```
-gcc main.c level_init.c -o game.exe
+gcc *.c -o game.exe
 ```
