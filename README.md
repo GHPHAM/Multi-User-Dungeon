@@ -12,7 +12,18 @@
 
 ## Compile server
 ### in /server
-with gcc
+#### with gcc
 ```
 gcc *.c -o game.exe
+```
+
+#### with Makefile
+Windows
+```
+mingw32-make
+```
+
+Linux
+```
+make
 ```
