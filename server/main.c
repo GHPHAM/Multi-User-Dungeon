@@ -105,7 +105,7 @@ int main() {
     for (int i = 0; i < size-1; ++i)
     {
         level[levelOrder[i]].room[9].east = &level[levelOrder[i+1]].room[0];
-        level[levelOrder[i+1]].room[9].west = &level[levelOrder[i]].room[0];
+        level[levelOrder[i+1]].room[0].west = &level[levelOrder[i]].room[9];
     }
 
     // Start at the beginning
