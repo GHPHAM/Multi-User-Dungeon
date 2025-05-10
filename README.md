@@ -9,3 +9,21 @@
 
 ## Controls
 * Player traverse with 4 buttons that take them north, south, east, west.
+
+## Compile server
+### in /server
+#### with gcc
+```
+gcc *.c -o game.exe
+```
+
+#### with Makefile
+Windows
+```
+mingw32-make
+```
+
+Linux
+```
+make
+```
