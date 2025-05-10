@@ -1,6 +1,9 @@
 // main.c
 #include "dungeon.h"
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 // Global level array, accessible by level_init.c
 Level level[4];
@@ -9,11 +12,13 @@ void initLevel2();
 void initLevel3();
 void initLevel4();
 
-// Function declarations - now defined in level_init.c
+// Calling the level to initialize
 void initLevels()
 {
     initLevel1();
-    //initLevel2();
+    initLevel2();
+    initLevel3();
+    initLevel4();
     //...
 }
 
@@ -53,10 +58,31 @@ char getCommand() {
 }
 
 // Free allocated memory
-void cleanupLevel(Level* level) {
-    for (int i = 0; i < 10; i++) {
-        free(level->room[i].desc);
+void cleanupLevel() {
+    for (int i = 0; i < sizeof(level); ++i)
+    {
+        for (int j = 0; j < 10; ++j) {
+            free(level->room[i].desc);
+        }
     }
+}
+
+// shuffling the number
+void shuffle(short int *array, int size) {
+    srand(time(NULL));
+    for (int i = size - 1; i > 0; --i) {
+        int j = rand() % (i + 1);
+        int temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+
+    //debug
+    printf("Run seed: ");
+    for (int i = 0; i < size; ++i){
+        printf("%d",array[i]);
+    }
+    printf("\n");
 }
 
 int main() {
@@ -70,8 +96,20 @@ int main() {
     // Initialize the levels
     initLevels();
 
+    // Randomizing the queue of levels
+    short int levelOrder[] = {0, 1, 2, 3};
+    short int size = sizeof(levelOrder) / sizeof(levelOrder[0]);
+    shuffle(levelOrder, size);
+
+    // Joining levels
+    for (int i = 0; i < size-1; ++i)
+    {
+        level[levelOrder[i]].room[9].east = &level[levelOrder[i+1]].room[0];
+        level[levelOrder[i+1]].room[0].west = &level[levelOrder[i]].room[9];
+    }
+
     // Start at the beginning
-    currentRoom = level[0].startNode;
+    currentRoom = level[levelOrder[0]].startNode;
 
     // Main game loop
     while (playing) {
@@ -134,7 +172,7 @@ int main() {
     }
 
     // Clean up allocated memory
-    cleanupLevel(&level[0]);
+    cleanupLevel();
 
     return 0;
 }
