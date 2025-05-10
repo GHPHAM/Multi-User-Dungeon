@@ -4,7 +4,7 @@
 // External reference to the level array defined in main.c
 extern Level level[4];
 
-void initLevel1() // North, South, East, West
+void initLevel3() // North, South, East, West
 {
     level[2].room[9] = (Node){
         NULL,
