@@ -1,11 +1,14 @@
 CC = gcc
 CFLAGS = -Wall -g
 
-SRC = main.c level1.c
+SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
 TARGET = game.exe
 
+RM = del /Q
+
 all: $(TARGET)
+	@$(MAKE) clean-obj
 
 $(TARGET): $(OBJ)
 	$(CC) $(OBJ) -o $(TARGET)
@@ -14,4 +17,7 @@ $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(TARGET)
+	$(RM) $(OBJ) $(TARGET)
+
+clean-obj:
+	$(RM) $(OBJ)
