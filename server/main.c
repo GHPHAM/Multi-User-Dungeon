@@ -1,5 +1,6 @@
 // main.c
 #include "dungeon.h"
+#include "mqtt.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,25 +25,25 @@ void initLevels()
 
 // Display room information and available exits
 void displayRoom(Node* currentRoom) {
-    printf("\n=== %s ===\n", currentRoom->desc);
+    debugMessage("\n=== %s ===\n", currentRoom->desc);
 
-    printf("Exits: ");
-    if (currentRoom->north) printf("North ");
-    if (currentRoom->south) printf("South ");
-    if (currentRoom->east) printf("East ");
-    if (currentRoom->west) printf("West ");
-    printf("\n");
+    debugMessage("Exits: ");
+    if (currentRoom->north) debugMessage("North ");
+    if (currentRoom->south) debugMessage("South ");
+    if (currentRoom->east) debugMessage("East ");
+    if (currentRoom->west) debugMessage("West ");
+    debugMessage("\n");
 
     // Display special room attributes
     switch(currentRoom->attribute) {
         case START:
-            printf("This is the starting point.\n");
+            debugMessage("This is the starting point.\n");
             break;
         case END:
-            printf("This is the exit of the dungeon!\n");
+            debugMessage("This is the exit of the dungeon!\n");
             break;
         case HAS_ITEM:
-            printf("There's something interesting here.\n");
+            debugMessage("There's something interesting here.\n");
             break;
         default:
             break;
@@ -51,8 +52,18 @@ void displayRoom(Node* currentRoom) {
 
 // Get user input for movement
 char getCommand() {
-    char command;
-    printf("\nWhere would you like to go? (w/a/s/d/q): ");
+    char command = 0;
+    char mqtt_command = 0;
+
+    // Check for MQTT input first
+    mqtt_command = getMQTTInput();
+    if (mqtt_command) {
+        debugMessage("\nReceived MQTT command.\n");
+        return tolower(mqtt_command);
+    }
+
+    // Otherwise get local keyboard input
+    debugMessage("\nWhere would you like to go? (w/a/s/d/q): ");
     scanf(" %c", &command);
     return tolower(command);
 }
@@ -85,7 +96,38 @@ void shuffle(short int *array, int size) {
     printf("\n");
 }
 
+void cleanup() {
+    stopListener();
+    printf("Thanks for playing!\n");
+}
+
+void debugMessage(const char *format, ...) {
+    char buffer[512];
+    va_list args;
+
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+
+    publishMessage(buffer);
+    printf("%s", buffer);
+}
+
 int main() {
+    char input[20];
+
+    // Set up signal handlers for graceful termination
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
+
+    // Register cleanup function to be called on normal exit
+    atexit(cleanup);
+
+    // Start the MQTT listener
+    startListener();
+
+    /////////////////////////////////////
+
     Node* currentRoom;
     char command;
     int playing = 1;
@@ -132,41 +174,41 @@ int main() {
             case 'w':
                 if (currentRoom->north) {
                     currentRoom = currentRoom->north;
-                    printf("\nYou move north.\n");
+                    debugMessage("\nYou move north.\n");
                 } else {
-                    printf("\nYou can't go that way.\n");
+                    debugMessage("\nYou can't go that way.\n");
                 }
                 break;
             case 's':
                 if (currentRoom->south) {
                     currentRoom = currentRoom->south;
-                    printf("\nYou move south.\n");
+                    debugMessage("\nYou move south.\n");
                 } else {
-                    printf("\nYou can't go that way.\n");
+                    debugMessage("\nYou can't go that way.\n");
                 }
                 break;
             case 'd':
                 if (currentRoom->east) {
                     currentRoom = currentRoom->east;
-                    printf("\nYou move east.\n");
+                    debugMessage("\nYou move east.\n");
                 } else {
-                    printf("\nYou can't go that way.\n");
+                    debugMessage("\nYou can't go that way.\n");
                 }
                 break;
             case 'a':
                 if (currentRoom->west) {
                     currentRoom = currentRoom->west;
-                    printf("\nYou move west.\n");
+                    debugMessage("\nYou move west.\n");
                 } else {
-                    printf("\nYou can't go that way.\n");
+                    debugMessage("\nYou can't go that way.\n");
                 }
                 break;
             case 'q':
-                printf("\nThanks for playing!\n");
+                debugMessage("\nThanks for playing!\n");
                 playing = 0;
                 break;
             default:
-                printf("\nInvalid command. Use w, a, s, d, or q.\n");
+                debugMessage("\nInvalid command. Use w, a, s, d, or q.\n");
                 break;
         }
     }
