@@ -13,7 +13,7 @@
 #include <pthread.h>
 
 // MQTT Configuration
-#define MQTT_HOST "" // Add your MQTT broker address here
+extern char* MQTT_HOST; // MQTT broker address
 #define MQTT_TOPIC "MUD"
 
 // Global variables

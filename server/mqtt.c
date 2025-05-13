@@ -12,7 +12,7 @@ int listener_running = 0;
 char currentMove = 0; // W A S D
 
 // MQTT Configuration
-#define MQTT_HOST "" // Add your MQTT broker address here
+char* MQTT_HOST = ""; // MQTT broker address
 #define MQTT_TOPIC "MUD"
 
 
