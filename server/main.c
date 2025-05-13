@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdarg.h>
 
 // Global level array, accessible by level_init.c
 Level level[4];
@@ -22,6 +23,23 @@ void initLevels()
     initLevel4();
     //...
 }
+
+void clearConsole() {
+    printf("\033[H\033[J");
+}
+
+void debugMessage(const char *format, ...) {
+    char buffer[512];
+    va_list args;
+
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+
+    publishMessage(buffer);
+    //printf("%s", buffer);
+}
+
 
 // Display room information and available exits
 void displayRoom(Node* currentRoom) {
@@ -58,6 +76,7 @@ char getCommand() {
     // Check for MQTT input first
     mqtt_command = getMQTTInput();
     if (mqtt_command) {
+        clearConsole();
         debugMessage("\nReceived MQTT command.\n");
         return tolower(mqtt_command);
     }
@@ -65,6 +84,8 @@ char getCommand() {
     // Otherwise get local keyboard input
     debugMessage("\nWhere would you like to go? (w/a/s/d/q): ");
     scanf(" %c", &command);
+
+    clearConsole();
     return tolower(command);
 }
 
@@ -101,16 +122,11 @@ void cleanup() {
     printf("Thanks for playing!\n");
 }
 
-void debugMessage(const char *format, ...) {
-    char buffer[512];
-    va_list args;
-
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-
-    publishMessage(buffer);
-    printf("%s", buffer);
+// Signal handler for graceful termination
+void signalHandler(int sig) {
+    printf("\nReceived signal %d. Exiting...\n", sig);
+    cleanup();
+    exit(0);
 }
 
 int main() {
