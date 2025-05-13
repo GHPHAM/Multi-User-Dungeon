@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdarg.h>
+#include <fcntl.h>
+
+int input_pipe[2];
 
 // Global level array, accessible by level_init.c
 Level level[4];
@@ -71,15 +74,6 @@ void displayRoom(Node* currentRoom) {
 // Get user input for movement
 char getCommand() {
     char command = 0;
-    char mqtt_command = 0;
-
-    // Check for MQTT input first
-    mqtt_command = getMQTTInput();
-    if (mqtt_command) {
-        clearConsole();
-        debugMessage("\nReceived MQTT command.\n");
-        return tolower(mqtt_command);
-    }
 
     // Otherwise get local keyboard input
     debugMessage("\nWhere would you like to go? (w/a/s/d/q): ");
@@ -131,6 +125,17 @@ void signalHandler(int sig) {
 
 int main() {
     char input[20];
+
+    // Creating input pipe
+    if(pipe(input_pipe) == -1)
+    {
+        perror("pipe_failed");
+        exit(EXIT_FAILURE);
+    }
+    fcntl(input_pipe[1], F_SETFL, O_NONBLOCK); // non-blocking write end
+
+    dup2(input_pipe[0], STDIN_FILENO);
+    close(input_pipe[0]);
 
     // Set up signal handlers for graceful termination
     signal(SIGINT, signalHandler);

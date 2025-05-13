@@ -9,10 +9,8 @@ int mqtt_pipe_fd[2] = {-1, -1};
 pid_t mqtt_sub_pid = -1;
 int listener_running = 0;
 
-char currentMove = 0; // W A S D
-
 // MQTT Configuration
-char* MQTT_HOST = ""; // MQTT broker address
+char* MQTT_HOST = "localhost"; // MQTT broker address
 #define MQTT_TOPIC "MUD"
 
 
@@ -22,15 +20,13 @@ void mqttUpdate(const char *topic, const char *message) {
     // Check for current move update
     snprintf(subTopic, sizeof(subTopic), "%s/moves", MQTT_TOPIC);
     if (strcmp(topic, subTopic) == 0) {
-        currentMove = message[0];
+        char command = message[0];
+
+        //simulate input to scanf() to bypass getCommand()
+        write(input_pipe[1], &command, 1);
+
         return;
     }
-}
-
-char getMQTTInput() {
-    char move = currentMove;
-    currentMove = 0; // Reset after reading
-    return move;
 }
 
 // Thread function to read from the pipe and process MQTT messages

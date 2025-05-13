@@ -20,9 +20,9 @@ extern char* MQTT_HOST; // MQTT broker address
 extern char mosquittoPath[];
 extern char mosquittoSub[];
 extern int mqtt_pipe_fd[2];
+extern int input_pipe[2];
 extern pid_t mqtt_sub_pid;
 extern int listener_running;
-extern char currentMove;
 
 // Function declarations
 void publishMessage(const char *message);
@@ -30,6 +30,5 @@ void startListener();
 void stopListener();
 void* mqttListenerThread(void *arg);
 void mqttUpdate(const char *topic, const char *message);
-char getMQTTInput();
 
 #endif // MQTT_H
