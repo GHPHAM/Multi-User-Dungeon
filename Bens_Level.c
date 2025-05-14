@@ -1,5 +1,5 @@
 #include "dungeon.h"
-// Huy Pham
+// Ben Tzobery
 
 // External reference to the level array defined in main.c
 /* I don't know why I  did this, but I decided to do this for no reason. Its so stupid and so silli.
