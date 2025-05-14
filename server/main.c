@@ -263,6 +263,7 @@ int main()
             debugMessage("\nThanks for playing!\n");
             debugMessage("\nRestarting game\n");
             // Clean up allocated memory
+            cleanupLevel();
             main();
             break;
         }
