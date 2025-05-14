@@ -27,7 +27,8 @@ const int mqtt_port = 1883;                    // Default MQTT port
 const char* mqtt_username = "";                // Optional: MQTT username if required
 const char* mqtt_password = "";                // Optional: MQTT password if required
 const char* clientID = "ESP32_TTT";            // Client ID for MQTT connection
-const char* topic_sub = "TTT";                 // Topic to subscribe to for game control
+const char* topic_sub = "MUD";                   // Topic to subscribe to for game control
+const char* topic_push = "MUD/moves";                   // Topic to push game control to
 
 // Initialize WiFi and MQTT client - GLOBAL DECLARATIONS
 WiFiClient espClient;
@@ -58,6 +59,67 @@ int currentLine = 0;
 // Dynamic storage for lines
 char **lines = NULL;
 int numLines = 0;
+char* description = NULL;
+
+void publishButtonPress(const char* buttonName) {
+  String message = String("Button Pressed: ") + buttonName;
+  Serial.println("Publishing: " + message);
+  client.publish("esp32/button", message.c_str());
+}
+
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("]: ");
+
+  // Free previous memory if any
+  if (description != NULL) {
+    free(description);
+  }
+
+  // Allocate new memory for the description (+1 for null terminator)
+  description = (char*)malloc(length + 1);
+
+  if (description != NULL) {
+    memcpy(description, payload, length);
+    description[length] = '\0';  // Null-terminate the string
+
+    Serial.println(description); // Optional: print to Serial
+
+    // Process the description text
+    splitDescription(description);
+    currentLine = 0;
+    displayTwoLines(currentLine);
+  } else {
+    Serial.println("Failed to allocate memory for description");
+  }
+}
+
+
+void connectToWiFi() { //added wifi test
+  Serial.print("Connecting to WiFi");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println(" Connected to WiFi");
+}
+
+void reconnectMQTT() { //added MQTT conection test
+  while (!client.connected()) {
+    Serial.print("Connecting to MQTT...");
+    if (client.connect(clientID, mqtt_username, mqtt_password)) {
+      Serial.println("connected");
+      client.subscribe(topic_sub);
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
+    }
+  }
+}
 
 bool i2CAddrTest(uint8_t addr) {
   Wire.beginTransmission(addr);
@@ -78,6 +140,15 @@ void setup() {
   // Initialize Serial communication
   Serial.begin(115200);
 
+  // Initialize wifi and MQTT communication
+  connectToWiFi();
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(mqttCallback);
+  reconnectMQTT();
+  client.subscribe(topic_sub);
+  
+
+
   // Set button pins as inputs with internal pull-up resistors
   pinMode(BUTTON1_PIN, INPUT_PULLUP);
   pinMode(BUTTON2_PIN, INPUT_PULLUP);
@@ -92,7 +163,7 @@ void setup() {
     Serial.println("Joystick scrolling test started");
 
     // Example description
-    char* description = "Foxes are small to medium-sized omnivorous mammals belonging to several genera of the family Canidae. They have a flattened skull, upright triangular ears, a pointed slightly upturned snout, and a long bushy tail.";
+    description = "Foxes are small to medium-sized omnivorous mammals belonging to several genera of the family Canidae. They have a flattened skull, upright triangular ears, a pointed slightly upturned snout, and a long bushy tail.";
 
     // Split the description into lines
     splitDescription(description);
@@ -119,8 +190,8 @@ void loop() {
   // Check Button 1
   if (button1State != lastButton1State) {
     if (button1State == LOW) {
-      Serial.println("Button 1");
-      lcdDisplayTest("Button 1");
+      String message = String("W");
+      client.publish(topic_push, message.c_str()); 
     }
     // Small delay to debounce
     delay(50);
@@ -130,8 +201,8 @@ void loop() {
   // Check Button 2
   if (button2State != lastButton2State) {
     if (button2State == LOW) {
-      Serial.println("Button 2");
-      lcdDisplayTest("Button 2");
+      String message = String("A");
+      client.publish(topic_push, message.c_str()); 
     }
     delay(50);
     lastButton2State = button2State;
@@ -140,8 +211,8 @@ void loop() {
   // Check Button 3
   if (button3State != lastButton3State) {
     if (button3State == LOW) {
-      Serial.println("Button 3");
-      lcdDisplayTest("Button 3");
+      String message = String("S");
+      client.publish(topic_push, message.c_str()); 
     }
     delay(50);
     lastButton3State = button3State;
@@ -150,8 +221,8 @@ void loop() {
   // Check Button 4
   if (button4State != lastButton4State) {
     if (button4State == LOW) {
-      Serial.println("Button 4");
-      lcdDisplayTest("Button 4");
+      String message = String("D");
+      client.publish(topic_push, message.c_str()); 
     }
     delay(50);
     lastButton4State = button4State;
@@ -159,8 +230,8 @@ void loop() {
     // Check Button 5
   if (button5State != lastButton5State) {
     if (button5State == LOW) {
-      Serial.println("Button 5");
-      lcdDisplayTest("Button 5");
+      String message = String("Q");
+      client.publish(topic_push, message.c_str()); 
     }
     delay(50);
     lastButton5State = button5State;
