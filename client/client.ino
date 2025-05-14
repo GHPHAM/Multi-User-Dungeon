@@ -4,11 +4,11 @@
 #include <PubSubClient.h>
 
 // Define button pins
-#define BUTTON1_PIN 13
-#define BUTTON2_PIN 12
-#define BUTTON3_PIN 11
-#define BUTTON4_PIN 10
-#define BUTTON5_PIN 14  
+#define BUTTON1_PIN 10
+#define BUTTON2_PIN 11
+#define BUTTON3_PIN 12
+#define BUTTON4_PIN 13
+#define BUTTON5_PIN 14
 
 // Define LCD pins
 #define SDA 17
@@ -146,7 +146,7 @@ void setup() {
   client.setCallback(mqttCallback);
   reconnectMQTT();
   client.subscribe(topic_sub);
-  
+
 
 
   // Set button pins as inputs with internal pull-up resistors
@@ -191,7 +191,7 @@ void loop() {
   if (button1State != lastButton1State) {
     if (button1State == LOW) {
       String message = String("W");
-      client.publish(topic_push, message.c_str()); 
+      client.publish(topic_push, message.c_str());
     }
     // Small delay to debounce
     delay(50);
@@ -201,8 +201,8 @@ void loop() {
   // Check Button 2
   if (button2State != lastButton2State) {
     if (button2State == LOW) {
-      String message = String("A");
-      client.publish(topic_push, message.c_str()); 
+      String message = String("S");
+      client.publish(topic_push, message.c_str());
     }
     delay(50);
     lastButton2State = button2State;
@@ -211,8 +211,8 @@ void loop() {
   // Check Button 3
   if (button3State != lastButton3State) {
     if (button3State == LOW) {
-      String message = String("S");
-      client.publish(topic_push, message.c_str()); 
+      String message = String("A");
+      client.publish(topic_push, message.c_str());
     }
     delay(50);
     lastButton3State = button3State;
@@ -222,7 +222,7 @@ void loop() {
   if (button4State != lastButton4State) {
     if (button4State == LOW) {
       String message = String("D");
-      client.publish(topic_push, message.c_str()); 
+      client.publish(topic_push, message.c_str());
     }
     delay(50);
     lastButton4State = button4State;
@@ -231,7 +231,7 @@ void loop() {
   if (button5State != lastButton5State) {
     if (button5State == LOW) {
       String message = String("Q");
-      client.publish(topic_push, message.c_str()); 
+      client.publish(topic_push, message.c_str());
     }
     delay(50);
     lastButton5State = button5State;
