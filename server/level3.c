@@ -59,7 +59,7 @@ void initLevel3() // North, South, East, West
         &level[2].room[3], //South to Room 3
         &level[2].room[7], //East to Room 7
         &level[2].room[8], //West to Room 8
-        HAS_ITEM, strdup("You are presented with a grand staircase that branches off in two directions.")};
+        EMPTY, strdup("You are presented with a grand staircase that branches off in two directions.")};
 
     level[2].room[4] = (Node){
         NULL,
