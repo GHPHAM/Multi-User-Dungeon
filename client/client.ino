@@ -58,6 +58,9 @@ int currentLine = 0;
 char **lines = NULL;
 int numLines = 0;
 
+// Flag to indicate if we need to resubscribe
+bool needToResubscribe = false;
+
 // Function to test I2C address
 bool i2CAddrTest(uint8_t addr) {
   Wire.beginTransmission(addr);
@@ -97,8 +100,18 @@ void publishMove(const char* move) {
     client.publish(topic_pub, move);
     Serial.print("Published move: ");
     Serial.println(move);
+
+    // Add a short delay to allow the MQTT server to process the command
+    delay(100);
+
+    // Process any pending messages after sending a command
+    for(int i = 0; i < 10; i++) {
+      client.loop();
+      delay(50);
+    }
   } else {
     Serial.println("MQTT not connected!");
+    needToResubscribe = true;
   }
 }
 
@@ -138,6 +151,19 @@ void setup() {
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
+  // Connect to MQTT broker and subscribe
+  connectMQTT();
+
+  // Display initial message
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("MUD Client Ready");
+  lcd.setCursor(0, 1);
+  lcd.print("Waiting for data");
+}
+
+// Connect to MQTT broker function
+void connectMQTT() {
   // Connect to MQTT broker
   while (!client.connected()) {
     Serial.print("Connecting to MQTT broker...");
@@ -146,7 +172,8 @@ void setup() {
 
       // Subscribe to the description topic
       client.subscribe(topic_sub);
-      Serial.println("Subscribed to topic: MUD/description");
+      Serial.println("Subscribed to topic: MUD");
+      needToResubscribe = false;
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -158,22 +185,8 @@ void setup() {
 
 void loop() {
   // Ensure the MQTT client stays connected
-  if (!client.connected()) {
-    while (!client.connected()) {
-      Serial.print("Reconnecting to MQTT broker...");
-      if (client.connect(clientID, mqtt_username, mqtt_password)) {
-        Serial.println("reconnected");
-
-        // Re-subscribe to the description topic
-        client.subscribe(topic_sub);
-        Serial.println("Re-subscribed to topic: MUD/description");
-      } else {
-        Serial.print("failed, rc=");
-        Serial.print(client.state());
-        Serial.println(" try again in 5 seconds");
-        delay(5000);
-      }
-    }
+  if (!client.connected() || needToResubscribe) {
+    connectMQTT();
   }
 
   // Handle incoming MQTT messages
@@ -235,14 +248,16 @@ void loop() {
   int yVal = analogRead(yAxisPin);
 
   // Check if the joystick is moved up or down
-  if (yVal > 4000 && lastYVal <= 4000) { // Joystick moved up
+  if (yVal > 3500 && lastYVal <= 3500) { // Joystick moved up
     if (currentLine > 0) {
       currentLine--;
+      Serial.println("UP");
       displayTwoLines(currentLine);
     }
-  } else if (yVal < 100 && lastYVal >= 100) { // Joystick moved down
+  } else if (yVal < 1000 && lastYVal >= 1000) { // Joystick moved down
     if (currentLine < numLines - 2) {
       currentLine++;
+      Serial.println("DOWN");
       displayTwoLines(currentLine);
     }
   }
