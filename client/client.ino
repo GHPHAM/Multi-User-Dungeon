@@ -3,10 +3,10 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-#define BUTTON1_PIN 10
-#define BUTTON2_PIN 11
-#define BUTTON3_PIN 12
-#define BUTTON4_PIN 13
+#define BUTTON1_PIN 13
+#define BUTTON2_PIN 12
+#define BUTTON3_PIN 11
+#define BUTTON4_PIN 10
 #define BUTTON5_PIN 14
 
 #define Y_MAX 4000
@@ -20,11 +20,11 @@
 #define yAxisPin 4
 
 // WiFi credentials
-const char* ssid = "//";
-const char* password = "//";
+const char* ssid = "MEOHEO";
+const char* password = "0913753545";
 
 // MQTT Broker settings
-const char* mqtt_server = "//";      // Replace with your broker IP
+const char* mqtt_server = "34.82.138.246";      // Replace with your broker IP
 const int mqtt_port = 1883;        // Default MQTT port
 const char* mqtt_username = "";    // Optional: MQTT username if required
 const char* mqtt_password = "";    // Optional: MQTT password if required
@@ -92,39 +92,27 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println(message);
 
   // Check if the topic is for descriptions
-  if (strcmp(topic, topic_sub) == 0) {
-    // If the buffer might overflow, reset it
-    if (bufferLength + length >= MAX_BUFFER_SIZE - 1) {
-      bufferLength = 0;
-    }
+  if (strcmp(topic, topic_sub) == 0)
+  {
+    // Concatenate the new message to the buffer, add newline
+    strncat(messageBuffer, message, sizeof(messageBuffer) - strlen(messageBuffer) - 2);
+    strncat(messageBuffer, "\n", sizeof(messageBuffer) - strlen(messageBuffer) - 1);
 
-    // Append the new message to our buffer
-    if (bufferLength > 0 && bufferLength < MAX_BUFFER_SIZE - 1) {
-      // Add a space between accumulated messages
-      messageBuffer[bufferLength++] = ' ';
-    }
-
-    // Copy the new message to the buffer
-    memcpy(messageBuffer + bufferLength, message, length);
-    bufferLength += length;
-    messageBuffer[bufferLength] = '\0';
-
-    // Check if we have received the end marker
-    if (strstr(messageBuffer, END_MARKER) != NULL) {
-      Serial.println("End marker detected, processing buffer");
-
+    // Check if the message ends with a prompt (e.g., "Where would you like to go?")
+    if (strstr(message, "Where would you like to go?") != NULL)
+    {
       // Free the previous lines
       freeLines();
 
-      // Process the complete message
+      // Split the concatenated description into lines
       splitDescription(messageBuffer);
 
       // Display the first two lines
       currentLine = 0;
       displayTwoLines(currentLine);
 
-      // Reset the buffer for the next set of messages
-      bufferLength = 0;
+      // Clear the buffer for the next set of messages
+      memset(messageBuffer, 0, sizeof(messageBuffer));
     }
   }
 }
@@ -234,37 +222,37 @@ void loop() {
   button4State = digitalRead(BUTTON4_PIN);
   button5State = digitalRead(BUTTON5_PIN);
 
-  // Check Button 1 (Move North)
+  // Check Button 1 (Move Up)
   if (button1State != lastButton1State) {
     if (button1State == LOW) {
-      publishMove("w"); // Move North
+      publishMove("w");
     }
     delay(50);
     lastButton1State = button1State;
   }
 
-  // Check Button 2 (Move South)
+  // Check Button 2 (Move Down)
   if (button2State != lastButton2State) {
     if (button2State == LOW) {
-      publishMove("s"); // Move South
+      publishMove("s");
     }
     delay(50);
     lastButton2State = button2State;
   }
 
-  // Check Button 3 (Move East)
+  // Check Button 3 (Move Left)
   if (button3State != lastButton3State) {
     if (button3State == LOW) {
-      publishMove("d"); // Move East
+      publishMove("a"); // Move East
     }
     delay(50);
     lastButton3State = button3State;
   }
 
-  // Check Button 4 (Move West)
+  // Check Button 4 (Move Right)
   if (button4State != lastButton4State) {
     if (button4State == LOW) {
-      publishMove("a"); // Move West
+      publishMove("d");
     }
     delay(50);
     lastButton4State = button4State;
@@ -273,7 +261,7 @@ void loop() {
   // Check Button 5 (Quit)
   if (button5State != lastButton5State) {
     if (button5State == LOW) {
-      publishMove("q"); // Quit
+      publishMove("r"); // Restart
     }
     delay(50);
     lastButton5State = button5State;
