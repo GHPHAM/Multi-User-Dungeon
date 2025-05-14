@@ -3,10 +3,10 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-#define BUTTON1_PIN 13
-#define BUTTON2_PIN 12
-#define BUTTON3_PIN 11
-#define BUTTON4_PIN 10 
+#define BUTTON1_PIN 10
+#define BUTTON2_PIN 11
+#define BUTTON3_PIN 12
+#define BUTTON4_PIN 13
 #define BUTTON5_PIN 14
 
 // Define LCD pins
@@ -17,8 +17,8 @@
 #define yAxisPin 4
 
 // WiFi credentials
-const char* ssid = "//";    
-const char* password = "//";  
+const char* ssid = "//";
+const char* password = "//";
 
 // MQTT Broker settings
 const char* mqtt_server = "//";      // Replace with your broker IP
@@ -37,7 +37,7 @@ PubSubClient client(espClient);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // Variables to store button states
-int button1State = HIGH;  
+int button1State = HIGH;
 int button2State = HIGH;
 int button3State = HIGH;
 int button4State = HIGH;
@@ -107,8 +107,8 @@ void setup() {
   if (!i2CAddrTest(0x27)) {
     lcd = LiquidCrystal_I2C(0x3F, 16, 2);
   }
-  lcd.init(); 
-  lcd.backlight(); 
+  lcd.init();
+  lcd.backlight();
 
   // Initialize Serial communication
   Serial.begin(115200);
