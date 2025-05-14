@@ -9,6 +9,9 @@
 #define BUTTON4_PIN 13
 #define BUTTON5_PIN 14
 
+#define Y_MAX 4000
+#define Y_MIN 1000
+
 // Define LCD pins
 #define SDA 17
 #define SCL 18
@@ -61,6 +64,14 @@ int numLines = 0;
 // Flag to indicate if we need to resubscribe
 bool needToResubscribe = false;
 
+// Buffer for accumulating messages
+#define MAX_BUFFER_SIZE 1024
+char messageBuffer[MAX_BUFFER_SIZE];
+unsigned int bufferLength = 0;
+
+// End of message marker - when we see this, we process the accumulated buffer
+#define END_MARKER "Where would you like to go? (w/a/s/d/q):"
+
 // Function to test I2C address
 bool i2CAddrTest(uint8_t addr) {
   Wire.beginTransmission(addr);
@@ -82,15 +93,39 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   // Check if the topic is for descriptions
   if (strcmp(topic, topic_sub) == 0) {
-    // Free the previous lines
-    freeLines();
+    // If the buffer might overflow, reset it
+    if (bufferLength + length >= MAX_BUFFER_SIZE - 1) {
+      bufferLength = 0;
+    }
 
-    // Split the new description into lines
-    splitDescription(message);
+    // Append the new message to our buffer
+    if (bufferLength > 0 && bufferLength < MAX_BUFFER_SIZE - 1) {
+      // Add a space between accumulated messages
+      messageBuffer[bufferLength++] = ' ';
+    }
 
-    // Display the first two lines
-    currentLine = 0;
-    displayTwoLines(currentLine);
+    // Copy the new message to the buffer
+    memcpy(messageBuffer + bufferLength, message, length);
+    bufferLength += length;
+    messageBuffer[bufferLength] = '\0';
+
+    // Check if we have received the end marker
+    if (strstr(messageBuffer, END_MARKER) != NULL) {
+      Serial.println("End marker detected, processing buffer");
+
+      // Free the previous lines
+      freeLines();
+
+      // Process the complete message
+      splitDescription(messageBuffer);
+
+      // Display the first two lines
+      currentLine = 0;
+      displayTwoLines(currentLine);
+
+      // Reset the buffer for the next set of messages
+      bufferLength = 0;
+    }
   }
 }
 
@@ -105,7 +140,7 @@ void publishMove(const char* move) {
     delay(100);
 
     // Process any pending messages after sending a command
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < 20; i++) {
       client.loop();
       delay(50);
     }
@@ -248,13 +283,13 @@ void loop() {
   int yVal = analogRead(yAxisPin);
 
   // Check if the joystick is moved up or down
-  if (yVal > 3500 && lastYVal <= 3500) { // Joystick moved up
+  if (yVal > Y_MAX && lastYVal <= Y_MAX) { // Joystick moved up
     if (currentLine > 0) {
       currentLine--;
       Serial.println("UP");
       displayTwoLines(currentLine);
     }
-  } else if (yVal < 1000 && lastYVal >= 1000) { // Joystick moved down
+  } else if (yVal < Y_MIN && lastYVal >= Y_MIN) { // Joystick moved down
     if (currentLine < numLines - 2) {
       currentLine++;
       Serial.println("DOWN");
