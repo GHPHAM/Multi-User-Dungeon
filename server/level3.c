@@ -21,7 +21,7 @@ Vertical lines (|) North/South
 Horizontal Lines (<->) East/West
 Room 0 is (START)
 Room 9 is (END)
-
+Room 6 has the item
 */
 
 void initLevel3() // North, South, East, West
@@ -52,7 +52,7 @@ void initLevel3() // North, South, East, West
         NULL,
         &level[2].room[3], //East to Room 3
         NULL,
-        HAS_ITEM, strdup("You are confronted with a labyrinth of mirrors,\n You become disoriented.")};
+        HAS_ITEM, strdup("You are confronted with a labyrinth of mirrors,\n At the end of the labyrinth,\n You find the item you were looking for!.")};
 
     level[2].room[5] = (Node){
         NULL,
