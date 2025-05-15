@@ -32,6 +32,13 @@ const char* clientID = "ESP32_TTT"; // Client ID for MQTT connection
 const char* topic_sub = "MUD";      // Topic to subscribe to for descriptions
 const char* topic_pub = "MUD/moves";       // Topic to publish movement commands
 
+// TCP server settings
+const char* serverIP = "//";
+const int serverPort = 8888;
+
+// Create client instance
+ESP32TcpClient tcpClient(serverIP, serverPort, ssid, password);
+
 // Initialize WiFi and MQTT client
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -218,10 +225,30 @@ void connectMQTT() {
   }
 }
 
+void sendMoveCommand(const char* command) {
+  if (tcpClient.isServerConnected()) {
+    Serial.print("Sending command: ");
+    Serial.println(command);
+
+    // Send the command through the TCP socket
+    tcpClient.sendMessageLine(command);
+  } else {
+    Serial.println("Cannot send command: Not connected to server");
+  }
+}
+
 void loop() {
   // Ensure the MQTT client stays connected
   if (!client.connected() || needToResubscribe) {
     connectMQTT();
+  }
+
+  // Handle server connection status
+  if (!tcpClient.isServerConnected()) {
+    Serial.println("Connection lost. Attempting to reconnect...");
+    tcpClient.reconnect();
+    delay(5000); // Wait 5 seconds between reconnection attempts
+    return;
   }
 
   // Handle incoming MQTT messages
@@ -237,7 +264,7 @@ void loop() {
   // Check Button 1 (Move North)
   if (button1State != lastButton1State) {
     if (button1State == LOW) {
-      publishMove("w"); // Move North
+      sendMoveCommand("w"); // Move North
     }
     delay(50);
     lastButton1State = button1State;
@@ -246,7 +273,7 @@ void loop() {
   // Check Button 2 (Move South)
   if (button2State != lastButton2State) {
     if (button2State == LOW) {
-      publishMove("s"); // Move South
+      sendMoveCommand("s"); // Move South
     }
     delay(50);
     lastButton2State = button2State;
@@ -255,7 +282,7 @@ void loop() {
   // Check Button 3 (Move East)
   if (button3State != lastButton3State) {
     if (button3State == LOW) {
-      publishMove("d"); // Move East
+      sendMoveCommand("d"); // Move East
     }
     delay(50);
     lastButton3State = button3State;
@@ -264,7 +291,7 @@ void loop() {
   // Check Button 4 (Move West)
   if (button4State != lastButton4State) {
     if (button4State == LOW) {
-      publishMove("a"); // Move West
+      sendMoveCommand("a"); // Move West
     }
     delay(50);
     lastButton4State = button4State;
@@ -273,7 +300,7 @@ void loop() {
   // Check Button 5 (Quit)
   if (button5State != lastButton5State) {
     if (button5State == LOW) {
-      publishMove("q"); // Quit
+      sendMoveCommand("q"); // Quit
     }
     delay(50);
     lastButton5State = button5State;
