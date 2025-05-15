@@ -42,7 +42,7 @@ const char* topic_pub = "MUD/moves";       // Topic to publish movement commands
 
 // TCP settings
 const char* tcp_server = "//";
-const int tcp_port = 8080;  // Adjust to match your server port
+const int tcp_port = 8888;  // Adjust to match your server port
 
 // Initialize TCP client
 ESP32TcpClient tcpClient(tcp_server, tcp_port, ssid, password);
@@ -169,7 +169,7 @@ void publishMove(const char* move) {
 void publishMoveTCP(const char* move) {
   if (tcpClient.isServerConnected()) {
     tcpClient.sendMessageLine(move);
-    Serial.print("Published move: ");
+    Serial.print("Published move TCP: ");
     Serial.println(move);
 
     // Add a short delay to allow the server to process the command
