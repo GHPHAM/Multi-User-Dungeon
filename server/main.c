@@ -1,13 +1,169 @@
 // main.c
 #include "dungeon.h"
 #include "mqtt.h"
+#include "tcp_server.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <string.h>
 
+///////////////// TCP SOCKET /////////////////////
+
+#define SERVER_PORT 8888
+#define MAX_CONNECTIONS 5
+#define MAX_LEN 1024
+
+// Global socket server
+static tcp_server_t* server = NULL;
+static pthread_t socket_thread;
+static volatile int server_running = 0;
+static char last_command = 0;
+static pthread_mutex_t command_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// Function to initialize the socket server
+int initSocketServer() {
+    // Configure the server
+    tcp_server_config_t config = {
+        .port = SERVER_PORT,
+        .max_connections = MAX_CONNECTIONS,
+        .buffer_size = MAX_LEN
+    };
+
+    // Initialize the server
+    server = tcp_server_init_with_config(&config);
+    if (server == NULL) {
+        fprintf(stderr, "Failed to initialize socket server\n");
+        return -1;
+    }
+
+    // Start the server
+    if (tcp_server_start(server) != 0) {
+        fprintf(stderr, "Failed to start socket server\n");
+        tcp_server_cleanup(server);
+        server = NULL;
+        return -1;
+    }
+
+    printf("Socket server initialized on port %d\n", SERVER_PORT);
+    return 0;
+}
+
+// Socket listener thread function
+void* socketListenerThread(void* arg) {
+    printf("Socket listener thread started\n");
+
+    while (server_running) {
+        // Accept a client connection
+        printf("Waiting for client connection...\n");
+        if (tcp_server_accept(server) != 0) {
+            fprintf(stderr, "Failed to accept client connection\n");
+            sleep(1);
+            continue;
+        }
+
+        printf("Client connected\n");
+
+        // Welcome message
+        const char* welcome_msg = "Welcome to the Dungeon Crawler!\nCommands: w (north), s (south), a (west), d (east), r (restart)\n";
+        tcp_server_send(server, welcome_msg, strlen(welcome_msg));
+
+        // Process client commands
+        while (server_running) {
+            int bytes_received = tcp_server_receive(server);
+            if (bytes_received <= 0) {
+                printf("Client disconnected\n");
+                break;
+            }
+
+            const char* msg = tcp_server_get_message(server);
+            if (msg != NULL && strlen(msg) > 0) {
+                char cmd = msg[0];
+
+                // Check if it's a valid command
+                if (cmd == 'w' || cmd == 's' || cmd == 'a' || cmd == 'd' || cmd == 'r' ||
+                    cmd == 'W' || cmd == 'S' || cmd == 'A' || cmd == 'D' || cmd == 'R') {
+
+                    // Store the command
+                    pthread_mutex_lock(&command_mutex);
+                    last_command = tolower(cmd);
+                    pthread_mutex_unlock(&command_mutex);
+
+                    // Confirm receipt of command
+                    char confirm[50];
+                    snprintf(confirm, sizeof(confirm), "Command received: %c\n", cmd);
+                    tcp_server_send(server, confirm, strlen(confirm));
+                }
+            }
+        }
+
+        // Disconnect client when done
+        tcp_server_disconnect_client(server);
+    }
+
+    printf("Socket listener thread exiting\n");
+    return NULL;
+}
+
+// Start the socket listener
+int startSocketListener() {
+    // Initialize the socket server
+    if (initSocketServer() != 0) {
+        return -1;
+    }
+
+    // Set the running flag
+    server_running = 1;
+
+    // Create the listener thread
+    if (pthread_create(&socket_thread, NULL, socketListenerThread, NULL) != 0) {
+        fprintf(stderr, "Failed to create socket listener thread\n");
+        tcp_server_cleanup(server);
+        server = NULL;
+        server_running = 0;
+        return -1;
+    }
+
+    return 0;
+}
+
+// Stop the socket listener
+void stopSocketListener() {
+    if (!server_running) {
+        return;
+    }
+
+    // Stop the thread
+    server_running = 0;
+
+    // Wait for the thread to exit
+    pthread_join(socket_thread, NULL);
+
+    // Clean up
+    if (server != NULL) {
+        tcp_server_cleanup(server);
+        server = NULL;
+    }
+
+    printf("Socket listener stopped\n");
+}
+
+// Get the latest command from the socket (replaces getCommand in main.c)
+char getSocketCommand() {
+    char cmd = 0;
+
+    // Get the latest command with mutex protection
+    pthread_mutex_lock(&command_mutex);
+    cmd = last_command;
+    last_command = 0; // Reset after reading
+    pthread_mutex_unlock(&command_mutex);
+
+    return cmd;
+}
+
+//////////////////////////////////////////////////
 int input_pipe[2];
 
 // Global level array, accessible by level_init.c
@@ -84,12 +240,16 @@ char getCommand()
 {
     char command = 0;
 
-    // Otherwise get local keyboard input
-    debugMessage("\nWhere would you like to go? (^/v/</>/r): ");
-    scanf(" %c", &command);
+    // Get command from socket instead of keyboard
+    command = getSocketCommand();
 
-    clearConsole();
-    return tolower(command);
+    // If no command from socket, wait a bit and try again
+    if (command == 0) {
+        usleep(100000); // Sleep for 100ms to avoid busy-waiting
+        return 0; // Return 0 to indicate no command available yet
+    }
+
+    return command;
 }
 
 // Free allocated memory
