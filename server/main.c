@@ -95,11 +95,14 @@ char getCommand()
 // Free allocated memory
 void cleanupLevel()
 {
-    for (int i = 0; i < sizeof(level); ++i)
+    for (int i = 0; i < sizeof(level) / sizeof(Level); ++i)
     {
         for (int j = 0; j < 10; ++j)
         {
-            free(level->room[i].desc);
+            if (level[i].room[j].desc != NULL) {
+                free(level[i].room[j].desc);
+                level[i].room[j].desc = NULL;
+            }
         }
     }
 }
@@ -166,115 +169,121 @@ int main()
 
     /////////////////////////////////////
 
-    Node *currentRoom;
-    char command;
-    int playing = 1;
+    // Game loop
+    while (1) {  // Outer infinite loop for game restarts
+        Node *currentRoom;
+        char command;
+        int playing = 1;
+        int restart = 0;
 
-    printf("Welcome to the Dungeon Crawler!\n");
-    printf("Commands: ^, v, <, >, r (restart)\n");
+        printf("Welcome to the Dungeon Crawler!\n");
+        printf("Commands: ^, v, <, >, r (restart)\n");
 
-    // Initialize the levels
-    initLevels();
+        // Initialize the levels
+        initLevels();
 
-    // Randomizing the queue of levels
-    short int levelOrder[] = {0, 1, 2, 3};
-    short int size = sizeof(levelOrder) / sizeof(levelOrder[0]);
-    shuffle(levelOrder, size);
+        // Randomizing the queue of levels
+        short int levelOrder[] = {0, 1, 2, 3};
+        short int size = sizeof(levelOrder) / sizeof(levelOrder[0]);
+        shuffle(levelOrder, size);
 
-    // Joining levels
-    for (int i = 0; i < size - 1; ++i)
-    {
-        level[levelOrder[i]].room[9].east = &level[levelOrder[i + 1]].room[0];
-        level[levelOrder[i + 1]].room[0].west = &level[levelOrder[i]].room[9];
-    }
-
-    // Start at the beginning
-    currentRoom = level[levelOrder[0]].startNode;
-
-    // Main game loop
-    while (playing)
-    {
-        displayRoom(currentRoom);
-
-        /*
-        // Check if we're at the end
-        if (currentRoom->attribute == HAS_ITEM)
+        // Joining levels
+        for (int i = 0; i < size - 1; ++i)
         {
-            printf("\nCongratulations! You have found the item!\n");
-            printf("Would you like to continue exploring? (y/n): ");
-            scanf(" %c", &command);
-            if (tolower(command) != 'y')
+            level[levelOrder[i]].room[9].east = &level[levelOrder[i + 1]].room[0];
+            level[levelOrder[i + 1]].room[0].west = &level[levelOrder[i]].room[9];
+        }
+
+        // Start at the beginning
+        currentRoom = level[levelOrder[0]].startNode;
+
+        // Inner game loop
+        while (playing)
+        {
+            displayRoom(currentRoom);
+
+            // Get command
+            command = getCommand();
+
+            // Process command
+            switch (command)
+            {
+            case 'w':
+                if (currentRoom->north)
+                {
+                    currentRoom = currentRoom->north;
+                    debugMessage("\nYou move north.\n");
+                }
+                else
+                {
+                    debugMessage("\nYou can't go that way.\n");
+                }
                 break;
-        }
-        */
+            case 's':
+                if (currentRoom->south)
+                {
+                    currentRoom = currentRoom->south;
+                    debugMessage("\nYou move south.\n");
+                }
+                else
+                {
+                    debugMessage("\nYou can't go that way.\n");
+                }
+                break;
+            case 'd':
+                if (currentRoom->east)
+                {
+                    currentRoom = currentRoom->east;
+                    debugMessage("\nYou move east.\n");
+                }
+                else
+                {
+                    debugMessage("\nYou can't go that way.\n");
+                }
+                break;
+            case 'a':
+                if (currentRoom->west)
+                {
+                    currentRoom = currentRoom->west;
+                    debugMessage("\nYou move west.\n");
+                }
+                else
+                {
+                    debugMessage("\nYou can't go that way.\n");
+                }
+                break;
+            case 'r':
+                debugMessage("\nRestarting game...\n");
+                playing = 0;  // Exit inner game loop
+                restart = 1;  // Set restart flag
+                break;
+            default:
+                debugMessage("\nInvalid command. Use w (north), s (south), a (west), d (east), or r (restart).\n");
+                break;
+            }
 
-        // Get command
-        command = getCommand();
-
-        // Process command
-        switch (command)
-        {
-        case 'w':
-            if (currentRoom->north)
-            {
-                currentRoom = currentRoom->north;
-                debugMessage("\nYou move north.\n");
+            // Check if we've reached the end
+            if (currentRoom->attribute == END) {
+                debugMessage("\nCongratulations! You've found the exit!\n");
+                debugMessage("Would you like to play again? (y/n): ");
+                scanf(" %c", &command);
+                if (tolower(command) == 'y') {
+                    playing = 0;  // Exit inner game loop
+                    restart = 1;  // Set restart flag
+                } else {
+                    playing = 0;  // Exit inner game loop
+                    restart = 0;  // Don't restart
+                }
             }
-            else
-            {
-                debugMessage("\nYou can't go that way.\n");
-            }
-            break;
-        case 's':
-            if (currentRoom->south)
-            {
-                currentRoom = currentRoom->south;
-                debugMessage("\nYou move south.\n");
-            }
-            else
-            {
-                debugMessage("\nYou can't go that way.\n");
-            }
-            break;
-        case 'd':
-            if (currentRoom->east)
-            {
-                currentRoom = currentRoom->east;
-                debugMessage("\nYou move east.\n");
-            }
-            else
-            {
-                debugMessage("\nYou can't go that way.\n");
-            }
-            break;
-        case 'a':
-            if (currentRoom->west)
-            {
-                currentRoom = currentRoom->west;
-                debugMessage("\nYou move west.\n");
-            }
-            else
-            {
-                debugMessage("\nYou can't go that way.\n");
-            }
-            break;
-        case 'r':
-        {
-            debugMessage("\nThanks for playing!\n");
-            debugMessage("\nRestarting game\n");
-            // Clean up allocated memory
-            cleanupLevel();
-            main();
-            break;
         }
-        default:
-            debugMessage("\nInvalid command. Use ^, v, <, >, or r.\n");
-            break;
+
+        // Clean up allocated memory before potentially restarting
+        cleanupLevel();
+
+        if (!restart) {
+            break;  // Exit the outer game loop if not restarting
         }
     }
-
-    // Clean up allocated memory
-    cleanupLevel();
 
     return 0;
 }
