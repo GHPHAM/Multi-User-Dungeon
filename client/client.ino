@@ -70,7 +70,7 @@ char messageBuffer[MAX_BUFFER_SIZE];
 unsigned int bufferLength = 0;
 
 // End of message marker - when we see this, we process the accumulated buffer
-#define END_MARKER "Where would you like to go? (w/a/s/d/q):"
+#define END_MARKER "Where would you like to go? (^/v/</>/r):"
 
 // Function to test I2C address
 bool i2CAddrTest(uint8_t addr) {
