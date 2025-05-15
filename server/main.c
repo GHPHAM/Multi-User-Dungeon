@@ -16,6 +16,8 @@
 #define MAX_CONNECTIONS 5
 #define MAX_LEN 1024
 
+pthread_cond_t command_available = PTHREAD_COND_INITIALIZER;
+
 // Global socket server
 static tcp_server_t* server = NULL;
 static pthread_t socket_thread;
@@ -66,10 +68,6 @@ void* socketListenerThread(void* arg) {
 
         printf("Client connected\n");
 
-        // Welcome message
-        const char* welcome_msg = "Welcome to the Dungeon Crawler!\nCommands: w (north), s (south), a (west), d (east), r (restart)\n";
-        tcp_server_send(server, welcome_msg, strlen(welcome_msg));
-
         // Process client commands
         while (server_running) {
             int bytes_received = tcp_server_receive(server);
@@ -89,6 +87,8 @@ void* socketListenerThread(void* arg) {
                     // Store the command
                     pthread_mutex_lock(&command_mutex);
                     last_command = tolower(cmd);
+                    // Signal that a command is available
+                    pthread_cond_signal(&command_available);
                     pthread_mutex_unlock(&command_mutex);
 
                     // Confirm receipt of command
@@ -154,10 +154,26 @@ void stopSocketListener() {
 char getSocketCommand() {
     char cmd = 0;
 
-    // Get the latest command with mutex protection
+    // Lock the mutex for command checking
     pthread_mutex_lock(&command_mutex);
+
+    // If no command is available, wait for one
+    if (last_command == 0) {
+        // Wait for a signal that a command is available
+        // Add a timeout of 1 second to allow for program termination
+        struct timespec timeout;
+        clock_gettime(CLOCK_REALTIME, &timeout);
+        timeout.tv_sec += 1;  // 1 second timeout
+
+        // Wait for command or timeout
+        pthread_cond_timedwait(&command_available, &command_mutex, &timeout);
+    }
+
+    // Get the command
     cmd = last_command;
-    last_command = 0; // Reset after reading
+    last_command = 0;  // Reset after reading
+
+    // Unlock the mutex
     pthread_mutex_unlock(&command_mutex);
 
     return cmd;
@@ -241,12 +257,14 @@ char getCommand()
     char command = 0;
 
     // Get command from socket instead of keyboard
-    command = getSocketCommand();
+    while (command == 0) {
+        // Check for socket command
+        command = getSocketCommand();
 
-    // If no command from socket, wait a bit and try again
-    if (command == 0) {
-        usleep(100000); // Sleep for 100ms to avoid busy-waiting
-        return 0; // Return 0 to indicate no command available yet
+        // If no command yet, sleep a bit before checking again
+        if (command == 0) {
+            usleep(200000); // Sleep for 200ms to reduce CPU usage
+        }
     }
 
     return command;
@@ -426,8 +444,19 @@ int main()
             if (currentRoom->attribute == END) {
                 debugMessage("\nCongratulations! You've found the exit!\n");
                 debugMessage("Would you like to play again? (y/n): ");
-                scanf(" %c", &command);
-                if (tolower(command) == 'y') {
+
+                char playAgain = 0;
+                int timeout = 50; // 5 seconds timeout (50 * 100ms)
+
+                while (timeout > 0 && playAgain == 0) {
+                    playAgain = getSocketCommand();
+                    if (playAgain == 0) {
+                        usleep(100000); // 100ms
+                        timeout--;
+                    }
+                }
+
+                if (playAgain == 'y' || playAgain == 'Y') {
                     playing = 0;  // Exit inner game loop
                     restart = 1;  // Set restart flag
                 } else {
