@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <ESP32TcpClient.h>
 
 #define BUTTON1_PIN 10
 #define BUTTON2_PIN 11
@@ -38,6 +39,13 @@ const char* mqtt_password = "";    // Optional: MQTT password if required
 const char* clientID = "ESP32_TTT"; // Client ID for MQTT connection
 const char* topic_sub = "MUD";      // Topic to subscribe to for descriptions
 const char* topic_pub = "MUD/moves";       // Topic to publish movement commands
+
+// TCP settings
+const char* tcp_server = "//";
+const int tcp_port = 8080;  // Adjust to match your server port
+
+// Initialize TCP client
+ESP32TcpClient tcpClient(tcp_server, tcp_port, ssid, password);
 
 // Initialize WiFi and MQTT client
 WiFiClient espClient;
@@ -157,6 +165,22 @@ void publishMove(const char* move) {
   }
 }
 
+// Function to publish movement commands via TCP
+void publishMoveTCP(const char* move) {
+  if (tcpClient.isServerConnected()) {
+    tcpClient.sendMessageLine(move);
+    Serial.print("Published move: ");
+    Serial.println(move);
+
+    // Add a short delay to allow the server to process the command
+    delay(100);
+  } else {
+    Serial.println("TCP server not connected!");
+    // Try to reconnect
+    tcpClient.reconnect();
+  }
+}
+
 void setup() {
   Wire.begin(SDA, SCL);
   if (!i2CAddrTest(0x27)) {
@@ -188,6 +212,13 @@ void setup() {
     Serial.println("Connecting to WiFi...");
   }
   Serial.println("Connected to WiFi");
+
+  // Initialize TCP client for sending commands
+  if (tcpClient.connectToServer()) {
+    Serial.println("Connected to TCP server");
+  } else {
+    Serial.println("Failed to connect to TCP server. Will retry in loop.");
+  }
 
   // Initialize MQTT client
   client.setServer(mqtt_server, mqtt_port);
@@ -231,6 +262,10 @@ void loop() {
     connectMQTT();
   }
 
+  if (!tcpClient.isServerConnected()) {
+    tcpClient.reconnect();
+  }
+
   // Handle incoming MQTT messages
   client.loop();
 
@@ -244,7 +279,7 @@ void loop() {
   // Check Button 1 (Move North)
   if (button1State != lastButton1State) {
     if (button1State == LOW) {
-      publishMove(MOVE_UP); // Move North
+      publishMoveTCP(MOVE_UP); // Move North
     }
     delay(50);
     lastButton1State = button1State;
@@ -253,7 +288,7 @@ void loop() {
   // Check Button 2 (Move South)
   if (button2State != lastButton2State) {
     if (button2State == LOW) {
-      publishMove(MOVE_DOWN); // Move South
+      publishMoveTCP(MOVE_DOWN); // Move South
     }
     delay(50);
     lastButton2State = button2State;
@@ -262,7 +297,7 @@ void loop() {
   // Check Button 3 (Move East)
   if (button3State != lastButton3State) {
     if (button3State == LOW) {
-      publishMove(MOVE_LEFT); // Move East
+      publishMoveTCP(MOVE_LEFT); // Move East
     }
     delay(50);
     lastButton3State = button3State;
@@ -271,7 +306,7 @@ void loop() {
   // Check Button 4 (Move West)
   if (button4State != lastButton4State) {
     if (button4State == LOW) {
-      publishMove(MOVE_RIGHT); // Move West
+      publishMoveTCP(MOVE_RIGHT); // Move West
     }
     delay(50);
     lastButton4State = button4State;
@@ -280,7 +315,7 @@ void loop() {
   // Check Button 5 (Quit)
   if (button5State != lastButton5State) {
     if (button5State == LOW) {
-      publishMove(RESTART); // Quit
+      publishMoveTCP(RESTART); // Quit
     }
     delay(50);
     lastButton5State = button5State;
