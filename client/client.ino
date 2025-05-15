@@ -13,7 +13,7 @@
 #define MOVE_UP "w"
 #define MOVE_DOWN "s"
 #define MOVE_LEFT "a"
-#define MOVE_right "d"
+#define MOVE_RIGHT "d"
 #define RESTART "r"
 
 #define Y_MAX 4000
