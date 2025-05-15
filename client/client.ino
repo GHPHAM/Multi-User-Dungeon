@@ -9,6 +9,13 @@
 #define BUTTON4_PIN 13
 #define BUTTON5_PIN 14
 
+// Moves
+#define MOVE_UP "w"
+#define MOVE_DOWN "s"
+#define MOVE_LEFT "a"
+#define MOVE_right "d"
+#define RESTART "r"
+
 #define Y_MAX 4000
 #define Y_MIN 1000
 
@@ -237,7 +244,7 @@ void loop() {
   // Check Button 1 (Move North)
   if (button1State != lastButton1State) {
     if (button1State == LOW) {
-      publishMove("w"); // Move North
+      publishMove(MOVE_UP); // Move North
     }
     delay(50);
     lastButton1State = button1State;
@@ -246,7 +253,7 @@ void loop() {
   // Check Button 2 (Move South)
   if (button2State != lastButton2State) {
     if (button2State == LOW) {
-      publishMove("s"); // Move South
+      publishMove(MOVE_DOWN); // Move South
     }
     delay(50);
     lastButton2State = button2State;
@@ -255,7 +262,7 @@ void loop() {
   // Check Button 3 (Move East)
   if (button3State != lastButton3State) {
     if (button3State == LOW) {
-      publishMove("d"); // Move East
+      publishMove(MOVE_LEFT); // Move East
     }
     delay(50);
     lastButton3State = button3State;
@@ -264,7 +271,7 @@ void loop() {
   // Check Button 4 (Move West)
   if (button4State != lastButton4State) {
     if (button4State == LOW) {
-      publishMove("a"); // Move West
+      publishMove(MOVE_RIGHT); // Move West
     }
     delay(50);
     lastButton4State = button4State;
@@ -273,7 +280,7 @@ void loop() {
   // Check Button 5 (Quit)
   if (button5State != lastButton5State) {
     if (button5State == LOW) {
-      publishMove("q"); // Quit
+      publishMove(RESTART); // Quit
     }
     delay(50);
     lastButton5State = button5State;
