@@ -237,14 +237,14 @@ void displayRoom(Node *currentRoom)
     switch (currentRoom->attribute)
     {
     case START:
-        debugMessage("This is the starting point.\n");
+        //debugMessage("This is the starting point.\n");
         break;
     case END:
-        debugMessage("This is the exit of the dungeon!\n");
+        //debugMessage("This is the exit of the dungeon!\n");
         break;
     case HAS_ITEM:
-        debugMessage("There's something interesting here.\n");
-        currentRoom->attribute = EMPTY; // Mark as visited
+        debugMessage("\nCongratulations! You've found the item!");
+        debugMessage("Would you like to play again? Reset or proceed to keep exploring: ");
         break;
     default:
         break;
@@ -443,31 +443,6 @@ int main()
             default:
                 debugMessage("\nInvalid command. Use w (north), s (south), a (west), d (east), or r (restart).\n");
                 break;
-            }
-
-            // Check if we've reached the end
-            if (currentRoom->attribute == END) {
-                debugMessage("\nCongratulations! You've found the exit!\n");
-                debugMessage("Would you like to play again? (y/n): ");
-
-                char playAgain = 0;
-                int timeout = 50; // 5 seconds timeout (50 * 100ms)
-
-                while (timeout > 0 && playAgain == 0) {
-                    playAgain = getSocketCommand();
-                    if (playAgain == 0) {
-                        usleep(100000); // 100ms
-                        timeout--;
-                    }
-                }
-
-                if (playAgain == 'y' || playAgain == 'Y') {
-                    playing = 0;  // Exit inner game loop
-                    restart = 1;  // Set restart flag
-                } else {
-                    playing = 0;  // Exit inner game loop
-                    restart = 0;  // Don't restart
-                }
             }
         }
 
