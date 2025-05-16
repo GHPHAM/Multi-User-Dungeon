@@ -347,6 +347,9 @@ int main()
     // Start the MQTT listener
     startListener();
 
+    // Start socket listener
+    startSocketListener();
+
     /////////////////////////////////////
 
     // Game loop
@@ -433,7 +436,7 @@ int main()
                 }
                 break;
             case 'r':
-                debugMessage("\nRestarting game...\n");
+                debugMessage("\nRestarting\n");
                 playing = 0;  // Exit inner game loop
                 restart = 1;  // Set restart flag
                 break;
