@@ -256,6 +256,8 @@ char getCommand()
 {
     char command = 0;
 
+    debugMessage("\nWhere would you like to go? (^/v/</>/r): ");
+
     // Get command from socket instead of keyboard
     while (command == 0) {
         // Check for socket command
